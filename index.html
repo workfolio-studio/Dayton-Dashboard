@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dayton 2.0 Assessment Dashboard | Pirate Chef</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fcfcfc;
+        }
+        h1, h2, h3, h4, h5, .font-brand {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+        }
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        .slide-up { animation: slideUp 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .hide { display: none; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #d4d4d8; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #a1a1aa; }
+        .hero-banner {
+            background-image: linear-gradient(rgba(24, 24, 27, 0.7), rgba(24, 24, 27, 0.8)), url('./0022-from-the-hip-photo-1_orig.jpg');
+            background-size: cover;
+            background-position: center 30%;
+        }
+        .chart-container { position: relative; width: 100%; margin: 0 auto; }
+        .chart-container-large { height: 350px; max-width: 100%; }
+        
+        /* Custom Input Range styling */
+        input[type=range] { -webkit-appearance: none; width: 100%; background: transparent; }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none; height: 24px; width: 24px; border-radius: 50%;
+            background: #ec4899; cursor: pointer; margin-top: -10px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #e4e4e7; border-radius: 2px; }
+        input[type=range]:focus { outline: none; }
+        
+        /* Blueprint Hover Effects */
+        .blueprint-zone { transition: all 0.2s ease; cursor: default; }
+        .blueprint-zone:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border-color: #ec4899; }
+        .tooltip-custom { visibility: hidden; opacity: 0; transition: visibility 0s, opacity 0.2s linear; }
+        .blueprint-zone:hover .tooltip-custom { visibility: visible; opacity: 1; }
+        
+        /* Funnel Effects */
+        .funnel-layer { transition: transform 0.2s ease; cursor: pointer; }
+        .funnel-layer:hover { transform: scale(1.02); }
+
+        /* Source Badge Hover */
+        .source-tooltip {
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.2s ease;
+            background-color: rgba(24, 24, 27, 0.90) !important; /* Semi-transparent background */
+            backdrop-filter: blur(5px); /* See-through glass effect */
+        }
+        .source-badge:hover .source-tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="text-zinc-800 antialiased h-screen flex flex-col md:flex-row overflow-hidden bg-[#fcfcfc]">
+
+    <div class="md:hidden bg-zinc-950 text-white p-4 flex justify-between items-center z-20 border-b border-zinc-800 shadow-md">
+        <div class="flex items-center space-x-3">
+            <span class="font-brand tracking-wide text-lg">PIRATE CHEF</span>
+        </div>
+        <button id="mobileMenuBtn" class="p-2 text-zinc-300 hover:text-white transition-colors text-xl font-bold">
+            <i data-lucide="menu"></i>
+        </button>
+    </div>
+
+    <!-- Sidebar Navigation -->
+    <nav id="sidebar" class="bg-zinc-950 text-zinc-400 w-full md:w-72 flex-shrink-0 absolute md:relative z-30 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col border-r border-zinc-900 shadow-2xl md:shadow-none">
+        <div class="p-8 hidden md:flex flex-col items-center border-b border-zinc-900/50">
+            <div class="text-center w-full">
+                <img src="./pirate-chef-final-trans-color-rgb-hr.png" alt="Pirate Chef Logo" class="h-16 w-auto object-contain mx-auto mb-4" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                <h1 class="font-brand text-white text-xl tracking-wide uppercase border-b border-zinc-800 pb-3 mb-2" style="display:none;">Pirate Chef</h1>
+                <p class="text-[10px] text-pink-500 font-bold uppercase tracking-[0.2em] w-full text-center">North Star Sprint 1</p>
+            </div>
+        </div>
+
+        <div class="p-5 flex-grow overflow-y-auto mt-16 md:mt-0">
+            <p class="text-[10px] font-bold text-zinc-600 uppercase tracking-[0.15em] mb-4 px-3">Interactive Briefing</p>
+            
+            <ul class="space-y-2">
+                <li>
+                    <button onclick="switchTab('bridge')" id="nav-bridge" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-sm bg-zinc-900 text-zinc-100 border-l-4 border-pink-500 transition-all text-left">
+                        <i data-lucide="map" class="w-5 h-5"></i>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm">1. The Bridge</span>
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-wider">Strategy Conversion</span>
+                        </div>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="switchTab('ecosystem')" id="nav-ecosystem" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-sm hover:bg-zinc-900 hover:text-zinc-200 border-l-4 border-transparent transition-all text-left">
+                        <i data-lucide="layout-template" class="w-5 h-5"></i>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm">2. New Engine</span>
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-wider">V.02 Business Model</span>
+                        </div>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="switchTab('financials')" id="nav-financials" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-sm hover:bg-zinc-900 hover:text-zinc-200 border-l-4 border-transparent transition-all text-left">
+                        <i data-lucide="pie-chart" class="w-5 h-5"></i>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm">3. Financial Reality</span>
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-wider">Revenue & Cash Burn</span>
+                        </div>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="switchTab('radar')" id="nav-radar" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-sm hover:bg-zinc-900 hover:text-zinc-200 border-l-4 border-transparent transition-all text-left">
+                        <i data-lucide="target" class="w-5 h-5"></i>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm">4. Roadblocks</span>
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-wider">Validation Funnel</span>
+                        </div>
+                    </button>
+                </li>
+                <li>
+                    <button onclick="switchTab('roadmap')" id="nav-roadmap" class="nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-sm hover:bg-zinc-900 hover:text-zinc-200 border-l-4 border-transparent transition-all text-left mt-4 border-t border-zinc-800">
+                        <i data-lucide="route" class="w-5 h-5"></i>
+                        <div class="flex flex-col">
+                            <span class="font-bold text-sm">5. Funding Roadmap</span>
+                            <span class="text-[10px] text-zinc-500 uppercase tracking-wider">Sprint Sequencer</span>
+                        </div>
+                    </button>
+                </li>
+            </ul>
+        </div>
+
+        <div class="p-5 border-t border-zinc-900 bg-zinc-950/50">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 border-2 border-zinc-700 flex items-center justify-center text-sm font-brand text-zinc-300 rounded-full">IR</div>
+                <div>
+                    <p class="text-sm font-bold text-zinc-300">Ian & Vanessa</p>
+                    <p class="text-[10px] text-zinc-500 uppercase tracking-wide">Founders / Operators</p>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow overflow-y-auto relative h-full bg-zinc-50/50" id="main-content">
+        <div class="max-w-5xl mx-auto p-4 md:p-10 pb-32">
+            
+            <!-- SECTION 1: THE BRIDGE -->
+            <div id="tab-bridge" class="tab-content fade-in">
+                <div class="hero-banner w-full h-64 md:h-80 rounded-sm mb-8 flex flex-col justify-center px-8 md:px-16 shadow-xl border border-zinc-200 relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-zinc-950/90 to-transparent"></div>
+                    <div class="relative z-10">
+                        <p class="text-pink-500 text-xs font-bold uppercase tracking-[0.2em] mb-3 border-l-2 border-pink-500 pl-3">Sprint 1 Assessment</p>
+                        <h2 class="text-4xl md:text-5xl font-brand text-white mb-4 leading-tight">The Bridge to Dayton</h2>
+                        <p class="text-zinc-300 text-sm md:text-base max-w-xl leading-relaxed font-medium">We are translating the "Bankable Soul" strategy from Ironton into a leaner, production-first reality at 2332 Dayton St. This dashboard is your interactive guide to the V.02 Assessment.</p>
+                    </div>
+                </div>
+
+                <!-- MULTIMODAL BRIEFING: The Bankable Soul -->
+                <div class="bg-zinc-900 rounded-sm p-6 flex flex-col gap-6 mb-8 shadow-lg border-l-4 border-pink-500 slide-up">
+                    <div class="flex items-center gap-4 border-b border-zinc-800 pb-4">
+                        <div class="bg-pink-500 text-white w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner">
+                            <i data-lucide="play-circle" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-brand text-lg mb-1">Strategic Learning Center</h4>
+                            <p class="text-zinc-400 text-xs">Choose your preferred learning format below. Topic: The Bankable CoWorking Model</p>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Video Brief -->
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="monitor-play" class="w-4 h-4 text-pink-400"></i>
+                                <h5 class="text-white font-bold text-sm">7-Min Visual Overview</h5>
+                            </div>
+                            <p class="text-zinc-500 text-xs">Best for big-picture thinking and visual mapping.</p>
+                            <video controls class="w-full aspect-video rounded-sm bg-black shadow-inner border border-zinc-800 mt-2">
+                                <source src="./1. North Star Commissary - Bankable CoWorking Model.mp4" type="video/mp4">
+                                Your browser does not support the video element.
+                            </video>
+                        </div>
+
+                        <!-- Audio Brief -->
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="headphones" class="w-4 h-4 text-amber-400"></i>
+                                <h5 class="text-white font-bold text-sm">20-Min Deep Dive Podcast</h5>
+                            </div>
+                            <p class="text-zinc-500 text-xs">Best for deeper context and foundational education.</p>
+                            <div class="mt-auto pt-4">
+                                <audio controls class="w-full outline-none rounded-sm">
+                                    <source src="./1. North Star Commissary - Bankable CoWorking Model.mp3" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div class="max-w-2xl">
+                        <h3 class="font-brand text-2xl text-zinc-900 mb-3">What Converts vs. What Dies</h3>
+                        <p class="text-zinc-600 text-sm md:text-base leading-relaxed">
+                            The prior work is not wasted. We have preserved the core brand architecture and CoWorking thesis. However, to prevent bad math from contaminating this restart, we must aggressively archive all property-dependent data tied to Ironton.
+                        </p>
+                    </div>
+                    <!-- Source Documentation Tag -->
+                    <div class="source-badge relative inline-block cursor-help bg-zinc-200 text-zinc-700 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest border border-zinc-300 flex-shrink-0">
+                        <i data-lucide="book-open" class="w-3 h-3 inline mr-1 -mt-0.5"></i> Source Intel
+                        <div class="source-tooltip absolute right-0 top-full mt-2 w-64 bg-zinc-900 text-white p-3 rounded-sm text-xs font-normal normal-case shadow-xl z-50 text-left">
+                            <strong>Reference Document:</strong><br>
+                            V.02 Assessment Memo<br>
+                            <span class="text-zinc-400">Read Sections 3.0 & 4.0 for a detailed breakdown of convertible strategy logic.</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="grid md:grid-cols-2 gap-6 mb-12">
+                    <div class="bg-white p-8 border border-zinc-200 shadow-md hover:shadow-lg transition-shadow border-t-4 border-t-pink-500 slide-up" style="animation-delay: 0.1s; animation-fill-mode: both;">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-brand text-xl text-zinc-900">Evergreen Assets</h3>
+                            <span class="px-3 py-1 bg-pink-50 text-pink-700 text-[10px] font-bold uppercase tracking-wider rounded-sm">Keep</span>
+                        </div>
+                        <p class="text-sm text-zinc-500 mb-6 leading-relaxed">The Core Engine. The business logic that transfers perfectly regardless of the building.</p>
+                        
+                        <div class="space-y-4">
+                            <div class="flex items-start">
+                                <div class="bg-zinc-100 p-2 rounded-sm mr-3 mt-0.5"><i data-lucide="layers" class="w-4 h-4"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-zinc-800">Brand Architecture</h4>
+                                    <p class="text-xs text-zinc-500 leading-tight mt-1">The "North Star" umbrella brand and "Food Production CoWorking" descriptor remain locked.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="bg-zinc-100 p-2 rounded-sm mr-3 mt-0.5"><i data-lucide="tags" class="w-4 h-4"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-zinc-800">CoWorking Pricing Logic</h4>
+                                    <p class="text-xs text-zinc-500 leading-tight mt-1">Tiered memberships and bundled storage models remain our primary risk-mitigation tool.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="bg-zinc-100 p-2 rounded-sm mr-3 mt-0.5"><i data-lucide="clipboard-check" class="w-4 h-4"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-zinc-800">Operational Controls</h4>
+                                    <p class="text-xs text-zinc-500 leading-tight mt-1">Onboarding docs, compliance standards, and member expectations transfer directly.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-8 border border-zinc-200 shadow-md hover:shadow-lg transition-shadow border-t-4 border-t-zinc-400 slide-up" style="animation-delay: 0.2s; animation-fill-mode: both;">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-brand text-xl text-zinc-900">Archived Assets</h3>
+                            <span class="px-3 py-1 bg-zinc-100 text-zinc-600 text-[10px] font-bold uppercase tracking-wider rounded-sm">Discard</span>
+                        </div>
+                        <p class="text-sm text-zinc-500 mb-6 leading-relaxed">The Ironton Vault. Obsolete math and floor plans. Do not use for current decisions.</p>
+                        
+                        <div class="space-y-4 opacity-70">
+                            <div class="flex items-start">
+                                <div class="bg-zinc-100 p-2 rounded-sm mr-3 mt-0.5"><i data-lucide="file-minus" class="w-4 h-4"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-zinc-500 line-through">Original V.3 Business Plan</h4>
+                                    <p class="text-xs text-zinc-400 leading-tight mt-1">The $750k purchase price and specific SF metrics are dead.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="bg-zinc-100 p-2 rounded-sm mr-3 mt-0.5"><i data-lucide="trending-down" class="w-4 h-4"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-zinc-500 line-through">Ironton Pro Formas</h4>
+                                    <p class="text-xs text-zinc-400 leading-tight mt-1">Totally obsolete. We have built a new blank Dayton 2.0 framework.</p>
+                                </div>
+                            </div>
+                            <div class="flex items-start">
+                                <div class="bg-zinc-100 p-2 rounded-sm mr-3 mt-0.5"><i data-lucide="hammer" class="w-4 h-4"></i></div>
+                                <div>
+                                    <h4 class="font-bold text-sm text-zinc-500 line-through">Old Buildout Estimates</h4>
+                                    <p class="text-xs text-zinc-400 leading-tight mt-1">Do not reuse old contractor ROMs for this new, smaller space.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button onclick="switchTab('ecosystem')" class="bg-zinc-900 text-white hover:bg-zinc-800 px-8 py-4 text-sm font-bold tracking-wide transition-colors flex items-center shadow-lg">
+                        Next: See The Dayton Engine <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 2: THE ECOSYSTEM BLUEPRINT -->
+            <div id="tab-ecosystem" class="tab-content hide fade-in">
+                <!-- MULTIMODAL BRIEFING: Food Coworking Model -->
+                <div class="bg-zinc-900 rounded-sm p-6 flex flex-col gap-6 mb-8 shadow-lg border-l-4 border-pink-500 slide-up">
+                    <div class="flex items-center gap-4 border-b border-zinc-800 pb-4">
+                        <div class="bg-pink-500 text-white w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner">
+                            <i data-lucide="play-circle" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-brand text-lg mb-1">Strategic Learning Center</h4>
+                            <p class="text-zinc-400 text-xs">Choose your preferred learning format below. Topic: Deconstructing the Food Coworking Model</p>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Video Brief -->
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="monitor-play" class="w-4 h-4 text-pink-400"></i>
+                                <h5 class="text-white font-bold text-sm">7-Min Visual Overview</h5>
+                            </div>
+                            <p class="text-zinc-500 text-xs">Best for big-picture thinking and visual mapping.</p>
+                            <video controls class="w-full aspect-video rounded-sm bg-black shadow-inner border border-zinc-800 mt-2">
+                                <source src="./2. North Star Commissary - Food Coworking Model.mp4" type="video/mp4">
+                                Your browser does not support the video element.
+                            </video>
+                        </div>
+
+                        <!-- Audio Brief -->
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="headphones" class="w-4 h-4 text-amber-400"></i>
+                                <h5 class="text-white font-bold text-sm">20-Min Deep Dive Podcast</h5>
+                            </div>
+                            <p class="text-zinc-500 text-xs">Best for deeper context and foundational education.</p>
+                            <div class="mt-auto pt-4">
+                                <audio controls class="w-full outline-none rounded-sm">
+                                    <source src="./2. North Star Commissary - Food Coworking Model.mp3" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8 border-b border-zinc-200 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div class="max-w-2xl">
+                        <p class="text-pink-500 text-xs font-bold uppercase tracking-[0.2em] mb-2">V.02 Assessment • Section 6-9</p>
+                        <h2 class="text-3xl md:text-4xl font-brand text-zinc-900 mb-3">The Ecosystem Blueprint</h2>
+                        <p class="text-zinc-600 text-sm md:text-base leading-relaxed">
+                            The V.02 Business Model translates abstract revenue streams into physical space. Hover over the zones in the Dayton blueprint below to reveal how the operations, compliance, and revenue models interact in the facility. 
+                        </p>
+                    </div>
+                    <!-- Source Documentation Tag -->
+                    <div class="source-badge relative inline-block cursor-help bg-zinc-200 text-zinc-700 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest border border-zinc-300 flex-shrink-0">
+                        <i data-lucide="book-open" class="w-3 h-3 inline mr-1 -mt-0.5"></i> Source Intel
+                        <div class="source-tooltip absolute right-0 top-full mt-2 w-72 bg-zinc-900 text-white p-3 rounded-sm text-xs font-normal normal-case shadow-xl z-50 text-left">
+                            <strong>Reference Document:</strong><br>
+                            V.02 Assessment Memo<br>
+                            <span class="text-zinc-400">Read Sections 6.0 through 9.0 for deep-dives into the Business Model layers, Revenue Rules, and Operational Compliance logic.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Interactive CSS Grid Blueprint -->
+                <div class="bg-zinc-100 p-6 md:p-10 rounded-sm border border-zinc-200 mb-10 shadow-inner relative">
+                    <div class="absolute top-4 right-4 text-[10px] font-bold uppercase tracking-widest text-zinc-400 flex items-center">
+                        <i data-lucide="mouse-pointer-2" class="w-3 h-3 mr-1"></i> Interactive Map
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-4">
+                        
+                        <!-- Core Production Zone -->
+                        <div class="md:col-span-2 blueprint-zone bg-white border-2 border-zinc-300 p-6 relative group h-64 flex flex-col justify-center items-center text-center">
+                            <i data-lucide="chef-hat" class="w-12 h-12 text-zinc-800 mb-3"></i>
+                            <h3 class="font-brand text-xl text-zinc-900 mb-1">Core Production Hub</h3>
+                            <p class="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-2">The "Lean Base"</p>
+                            
+                            <!-- Tooltip -->
+                            <div class="tooltip-custom absolute inset-0 bg-zinc-900/95 text-white p-5 flex flex-col justify-center text-left backdrop-blur-sm z-10">
+                                <h4 class="font-bold text-pink-400 mb-2 border-b border-zinc-700 pb-2">Revenue: Lean Base</h4>
+                                <ul class="text-xs space-y-2 mb-3 text-zinc-300">
+                                    <li><strong class="text-white">Anchor:</strong> Pirate Chef Operations</li>
+                                    <li><strong class="text-white">Members:</strong> Prep stations & shared hours</li>
+                                    <li><strong class="text-white">Storage:</strong> Dry, Cold, Frozen rack leases</li>
+                                </ul>
+                                <p class="text-[10px] text-zinc-400 italic">Validation required: Grease interceptor, Hood MEP, Zoning for shared use.</p>
+                            </div>
+                        </div>
+
+                        <!-- Brand Support Zone -->
+                        <div class="blueprint-zone bg-white border-2 border-zinc-300 border-dashed p-6 relative group h-64 flex flex-col justify-center items-center text-center">
+                            <i data-lucide="store" class="w-12 h-12 text-zinc-800 mb-3"></i>
+                            <h3 class="font-brand text-xl text-zinc-900 mb-1">Brand Support</h3>
+                            <p class="text-xs text-amber-500 font-bold uppercase tracking-wider mb-2">Conditional Upside</p>
+                            
+                            <!-- Tooltip -->
+                            <div class="tooltip-custom absolute inset-0 bg-zinc-900/95 text-white p-5 flex flex-col justify-center text-left backdrop-blur-sm z-10">
+                                <h4 class="font-bold text-amber-400 mb-2 border-b border-zinc-700 pb-2">Revenue: Brand Upside</h4>
+                                <ul class="text-xs space-y-2 mb-3 text-zinc-300">
+                                    <li><strong class="text-white">FOH:</strong> Tastings, Classes, Retail Pickup</li>
+                                    <li><strong class="text-white">Office:</strong> Content Creation, Founder Lounge</li>
+                                </ul>
+                                <p class="text-[10px] text-zinc-400 italic">V.02 Rule: Exclude from Base Case until customer-facing zoning and parking are validated.</p>
+                            </div>
+                        </div>
+
+                        <!-- Logistics Zone -->
+                        <div class="md:col-span-3 blueprint-zone bg-zinc-200 border-2 border-zinc-300 p-4 relative group flex flex-col md:flex-row justify-center items-center text-center gap-4">
+                            <div class="flex items-center">
+                                <i data-lucide="truck" class="w-10 h-10 text-zinc-800 mr-3"></i>
+                                <div class="text-left">
+                                    <h3 class="font-brand text-lg text-zinc-900">Exterior Logistics & Yard</h3>
+                                    <p class="text-[10px] text-amber-600 font-bold uppercase tracking-wider">Conditional Upside</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Tooltip -->
+                            <div class="tooltip-custom absolute inset-0 bg-zinc-900/95 text-white p-4 flex flex-col md:flex-row items-center justify-center gap-6 text-left backdrop-blur-sm z-10">
+                                <div>
+                                    <h4 class="font-bold text-amber-400 mb-1">Revenue: Logistics Upside</h4>
+                                    <p class="text-xs text-zinc-300">Food Truck parking, power pedestals, secure staging, and vendor bundles.</p>
+                                </div>
+                                <div class="text-[10px] text-zinc-400 border-l border-zinc-700 pl-4 max-w-xs">
+                                    <strong>Validation Block:</strong> Cannot be included in pro forma until lease specifically allows overnight truck parking and exterior use.
+                                </div>
+                            </div>
+                        </div>
+                        
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-6">
+                    <button onclick="switchTab('bridge')" class="text-sm font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 flex items-center transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Back
+                    </button>
+                    <button onclick="switchTab('financials')" class="bg-zinc-900 text-white hover:bg-zinc-800 px-8 py-4 text-sm font-bold tracking-wide transition-colors flex items-center shadow-lg">
+                        Next: Test The Financials <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 3: FINANCIAL REALITY -->
+            <div id="tab-financials" class="tab-content hide fade-in">
+                <!-- MULTIMODAL BRIEFING: Monetizing the Blueprint -->
+                <div class="bg-zinc-900 rounded-sm p-6 flex flex-col gap-6 mb-8 shadow-lg border-l-4 border-pink-500 slide-up">
+                    <div class="flex items-center gap-4 border-b border-zinc-800 pb-4">
+                        <div class="bg-pink-500 text-white w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 shadow-inner">
+                            <i data-lucide="play-circle" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-white font-brand text-lg mb-1">Strategic Learning Center</h4>
+                            <p class="text-zinc-400 text-xs">Choose your preferred learning format below. Topic: Monetizing a Commercial Kitchen Blueprint</p>
+                        </div>
+                    </div>
+
+                    <div class="grid md:grid-cols-2 gap-8">
+                        <!-- Video Brief -->
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="monitor-play" class="w-4 h-4 text-pink-400"></i>
+                                <h5 class="text-white font-bold text-sm">7-Min Visual Overview</h5>
+                            </div>
+                            <p class="text-zinc-500 text-xs">Best for big-picture thinking and visual mapping.</p>
+                            <video controls class="w-full aspect-video rounded-sm bg-black shadow-inner border border-zinc-800 mt-2">
+                                <source src="./3. Monetizing_a_Commercial_Kitchen_Coworking_Blueprint.mp4" type="video/mp4">
+                                Your browser does not support the video element.
+                            </video>
+                        </div>
+
+                        <!-- Audio Brief -->
+                        <div class="flex flex-col gap-3">
+                            <div class="flex items-center gap-2">
+                                <i data-lucide="headphones" class="w-4 h-4 text-amber-400"></i>
+                                <h5 class="text-white font-bold text-sm">20-Min Deep Dive Podcast</h5>
+                            </div>
+                            <p class="text-zinc-500 text-xs">Best for deeper context and foundational education.</p>
+                            <div class="mt-auto pt-4">
+                                <audio controls class="w-full outline-none rounded-sm">
+                                    <source src="./3. Monetizing_a_Commercial_Kitchen_Coworking_Blueprint.mp3" type="audio/mpeg">
+                                    Your browser does not support the audio element.
+                                </audio>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-8 pb-4 border-b border-zinc-200">
+                    <p class="text-pink-500 text-xs font-bold uppercase tracking-[0.2em] mb-2">Pro Forma Framework • CSV 06, 07, 11</p>
+                    <h2 class="text-3xl md:text-4xl font-brand text-zinc-900 mb-3">The Financial Reality</h2>
+                    <p class="text-zinc-600 text-sm md:text-base leading-relaxed max-w-3xl">
+                        A robust pro forma doesn't just show numbers; it models behavior. Below are two interactive tools designed to help you feel the impact of operational decisions on cash flow and revenue capacity.
+                    </p>
+                </div>
+
+                <!-- Interactive 1: The Revenue Tier Toggle -->
+                <div class="bg-white border border-zinc-200 shadow-md p-6 md:p-8 mb-10 relative">
+                    <div class="absolute top-4 right-4 z-20">
+                        <div class="source-badge relative inline-block cursor-help bg-zinc-200 text-zinc-700 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest border border-zinc-300">
+                            <i data-lucide="book-open" class="w-3 h-3 inline mr-1 -mt-0.5"></i> Source Intel
+                            <div class="source-tooltip absolute right-0 top-full mt-2 w-72 bg-zinc-900 text-white p-3 rounded-sm text-xs font-normal normal-case shadow-xl z-50 text-left">
+                                <strong>Reference Document:</strong><br>
+                                Google Sheet Pro Forma<br>
+                                <span class="text-zinc-400">This chart models the logic contained in <b>Tabs 06, 07, and 08</b>. Only Tab 06 (Lean Base) is currently active in your pro forma.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col md:flex-row justify-between md:items-end mb-6 border-b border-zinc-100 pb-6 gap-4 relative z-10">
+                        <div class="max-w-xl pr-12">
+                            <h3 class="font-brand text-2xl text-zinc-900 mb-2">Revenue Capacity Scenario</h3>
+                            <p class="text-sm text-zinc-600">The V.02 Assessment enforces a "Base Case Rule" (only production revenue is guaranteed). Toggle the upside layers below to see how validating the yard and tasting room expands the business model.</p>
+                        </div>
+                        
+                        <!-- Toggles -->
+                        <div class="flex flex-col gap-3 bg-zinc-50 p-4 rounded-sm border border-zinc-200 min-w-[250px]">
+                            <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 mb-1">Scenario Controls</div>
+                            
+                            <label class="flex items-center cursor-pointer">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle-base" class="sr-only toggle-checkbox" checked disabled>
+                                    <div class="block bg-zinc-900 w-10 h-6 rounded-full toggle-label"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform translate-x-4"></div>
+                                </div>
+                                <div class="ml-3 text-sm font-bold text-zinc-900">Lean Base (Locked)</div>
+                            </label>
+                            
+                            <label class="flex items-center cursor-pointer">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle-logistics" class="sr-only toggle-checkbox">
+                                    <div class="block bg-zinc-200 w-10 h-6 rounded-full toggle-label transition-colors" id="bg-logistics"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform" id="dot-logistics"></div>
+                                </div>
+                                <div class="ml-3 text-sm font-medium text-zinc-600">Add Logistics Upside</div>
+                            </label>
+
+                            <label class="flex items-center cursor-pointer">
+                                <div class="relative">
+                                    <input type="checkbox" id="toggle-brand" class="sr-only toggle-checkbox">
+                                    <div class="block bg-zinc-200 w-10 h-6 rounded-full toggle-label transition-colors" id="bg-brand"></div>
+                                    <div class="dot absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition transform" id="dot-brand"></div>
+                                </div>
+                                <div class="ml-3 text-sm font-medium text-zinc-600">Add Brand Upside</div>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="chart-container chart-container-large relative z-10">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Interactive 2: The Cash Burn Slider -->
+                <div class="bg-zinc-950 text-white border border-zinc-800 shadow-xl p-6 md:p-10 mb-10 relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    
+                    <div class="absolute top-4 right-4 z-20">
+                        <div class="source-badge relative inline-block cursor-help bg-zinc-800 text-zinc-300 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest border border-zinc-700">
+                            <i data-lucide="book-open" class="w-3 h-3 inline mr-1 -mt-0.5"></i> Source Intel
+                            <div class="source-tooltip absolute right-0 top-full mt-2 w-72 bg-white text-zinc-900 p-3 rounded-sm text-xs font-normal normal-case shadow-xl z-50 text-left">
+                                <strong>Reference Document:</strong><br>
+                                Google Sheet Pro Forma<br>
+                                <span class="text-zinc-600">This slider models the exact sensitivity formulas found in <b>Tab 11 (Working Capital)</b> and <b>Tab 14 (Sensitivity Checks)</b>.</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="relative z-10">
+                        <div class="flex flex-col md:flex-row justify-between mb-8 gap-6">
+                            <div class="max-w-md pr-12">
+                                <h3 class="font-brand text-2xl text-white mb-2">Sensitivity: The Cost of Delay</h3>
+                                <p class="text-sm text-zinc-400 leading-relaxed">
+                                    Before we generate a single dollar of revenue, we must pay base rent. Drag the slider to see how contractor or permit delays directly impact our minimum required working capital.
+                                </p>
+                            </div>
+                            
+                            <!-- Dynamic Readout Cards -->
+                            <div class="flex gap-4">
+                                <div class="bg-zinc-900 border border-zinc-700 p-4 rounded-sm min-w-[140px]">
+                                    <div class="text-[10px] text-zinc-500 uppercase tracking-widest mb-1 font-bold">Monthly Rent</div>
+                                    <div class="text-2xl font-brand text-zinc-300">$4,667</div>
+                                </div>
+                                <div class="bg-pink-900/20 border border-pink-500/50 p-4 rounded-sm min-w-[160px] transition-colors" id="burn-card">
+                                    <div class="text-[10px] text-pink-400 uppercase tracking-widest mb-1 font-bold">Total Cash Burn</div>
+                                    <div class="text-3xl font-brand text-white" id="burn-readout">$28,002</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Slider UI -->
+                        <div class="pt-4 pb-8">
+                            <div class="flex justify-between text-xs text-zinc-500 font-bold mb-4 uppercase tracking-widest">
+                                <span>3 Months</span>
+                                <span>6 Months (Base)</span>
+                                <span>9 Months</span>
+                            </div>
+                            <input type="range" id="delay-slider" min="3" max="9" value="6" step="1">
+                            <div class="text-center mt-6">
+                                <span class="bg-zinc-800 text-zinc-300 px-4 py-2 rounded-full text-sm font-bold border border-zinc-700">
+                                    Pre-Opening Timeline: <span id="months-readout" class="text-white">6 Months</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-6">
+                    <button onclick="switchTab('ecosystem')" class="text-sm font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 flex items-center transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Back
+                    </button>
+                    <button onclick="switchTab('radar')" class="bg-zinc-900 text-white hover:bg-zinc-800 px-8 py-4 text-sm font-bold tracking-wide transition-colors flex items-center shadow-lg">
+                        Next: Validation Radar <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 4: VALIDATION RADAR -->
+            <div id="tab-radar" class="tab-content hide fade-in">
+                <div class="mb-8 border-b border-zinc-200 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div class="max-w-2xl">
+                        <p class="text-pink-500 text-xs font-bold uppercase tracking-[0.2em] mb-2">Risk Management • CSV 15</p>
+                        <h2 class="text-3xl md:text-4xl font-brand text-zinc-900 mb-3">The Validation Funnel</h2>
+                        <p class="text-zinc-600 text-sm md:text-base leading-relaxed">
+                            Not all unknowns are equal. The 15 open items from the Validation Log are structured here as a bottleneck funnel. We cannot advance to funding until the top layer (Critical Path) is resolved. Click a layer to view assignments.
+                        </p>
+                    </div>
+                    <!-- Source Documentation Tag -->
+                    <div class="source-badge relative inline-block cursor-help bg-zinc-200 text-zinc-700 px-3 py-1.5 rounded-sm text-[10px] font-bold uppercase tracking-widest border border-zinc-300 flex-shrink-0">
+                        <i data-lucide="book-open" class="w-3 h-3 inline mr-1 -mt-0.5"></i> Source Intel
+                        <div class="source-tooltip absolute right-0 top-full mt-2 w-72 bg-zinc-900 text-white p-3 rounded-sm text-xs font-normal normal-case shadow-xl z-50 text-left">
+                            <strong>Reference Document:</strong><br>
+                            Google Sheet Pro Forma<br>
+                            <span class="text-zinc-400">This interactive funnel directly maps the data housed in <b>Tab 15 (Validation Log)</b>.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-10 mt-10">
+                    
+                    <!-- Interactive Funnel Graphic -->
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="text-[10px] font-bold uppercase tracking-widest text-zinc-400 mb-2">Priority Hierarchy</div>
+                        
+                        <div class="funnel-layer w-full bg-pink-500 text-white p-4 text-center shadow-md border-b-4 border-pink-700" onclick="showFunnelData('critical')">
+                            <h4 class="font-brand text-lg">1. Critical Path</h4>
+                            <p class="text-xs opacity-90">MEP & Base Lease</p>
+                        </div>
+                        
+                        <div class="funnel-layer w-11/12 bg-amber-500 text-white p-4 text-center shadow-md border-b-4 border-amber-700" onclick="showFunnelData('operations')">
+                            <h4 class="font-brand text-lg">2. Base Operations</h4>
+                            <p class="text-xs opacity-90">Zoning & Launch Scope</p>
+                        </div>
+                        
+                        <div class="funnel-layer w-4/5 bg-zinc-700 text-white p-4 text-center shadow-md border-b-4 border-zinc-900" onclick="showFunnelData('upside')">
+                            <h4 class="font-brand text-lg">3. Upside Validation</h4>
+                            <p class="text-xs opacity-90">Food Trucks & Retail</p>
+                        </div>
+
+                        <div class="funnel-layer w-3/5 bg-zinc-900 text-white p-4 text-center shadow-md" onclick="showFunnelData('funding')">
+                            <h4 class="font-brand text-lg">4. Funding Stack</h4>
+                            <p class="text-xs opacity-90">Sources & Reserves</p>
+                        </div>
+                    </div>
+
+                    <!-- Dynamic Data Table -->
+                    <div class="bg-white border border-zinc-200 shadow-md p-6 h-[380px] flex flex-col">
+                        <div class="border-b border-zinc-200 pb-3 mb-4 flex justify-between items-end">
+                            <h3 class="font-brand text-xl text-zinc-900" id="funnel-title">Select a Layer</h3>
+                            <span class="text-xs font-bold text-pink-500 bg-pink-50 px-2 py-1 rounded-sm" id="funnel-count">-- Items</span>
+                        </div>
+                        
+                        <div class="flex-grow overflow-y-auto pr-2">
+                            <ul id="funnel-list" class="space-y-4">
+                                <li class="text-sm text-zinc-500 italic text-center mt-20">Click a colored layer in the funnel to view the specific validation requirements and owners.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center pt-10">
+                    <button onclick="switchTab('financials')" class="text-sm font-bold uppercase tracking-widest text-zinc-500 hover:text-zinc-900 flex items-center transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4 mr-2"></i> Back
+                    </button>
+                    <button onclick="switchTab('roadmap')" class="bg-zinc-900 text-white hover:bg-zinc-800 px-8 py-4 text-sm font-bold tracking-wide transition-colors flex items-center shadow-lg">
+                        Next: See The Funding Roadmap <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- SECTION 5: FUNDING ROADMAP & CTA -->
+            <div id="tab-roadmap" class="tab-content hide fade-in">
+                <div class="mb-10 border-b border-zinc-200 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div class="max-w-2xl">
+                        <p class="text-pink-500 text-xs font-bold uppercase tracking-[0.2em] mb-2">Project Sequencer</p>
+                        <h2 class="text-3xl md:text-4xl font-brand text-zinc-900 mb-3">The Funding Roadmap</h2>
+                        <p class="text-zinc-600 text-sm md:text-base leading-relaxed">
+                            To design a "bullet-proof" lender-ready funding case, we must execute in a strict sequence. You are currently bridging from Sprint 1 to Sprint 2. We cannot build the final Sprint 3 Bank Package until your owner inputs clear the validation funnel.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Interactive Roadmap Visual -->
+                <div class="relative mb-16">
+                    <!-- Connecting Line -->
+                    <div class="absolute left-6 md:left-1/2 top-0 bottom-0 w-1 bg-zinc-200 transform md:-translate-x-1/2"></div>
+                    
+                    <div class="space-y-12 relative z-10">
+                        
+                        <!-- Sprint 1 -->
+                        <div class="flex flex-col md:flex-row items-start md:items-center w-full">
+                            <div class="md:w-1/2 flex md:justify-end pr-8 pl-16 md:pl-0 relative mb-4 md:mb-0">
+                                <!-- Mobile Icon -->
+                                <div class="md:hidden absolute left-0 top-0 w-12 h-12 bg-zinc-200 border-4 border-white rounded-full flex items-center justify-center text-xl shadow-sm z-20"><i data-lucide="check" class="w-5 h-5 text-zinc-600"></i></div>
+                                <div class="bg-white p-6 border border-zinc-200 shadow-sm rounded-sm text-left md:text-right w-full md:max-w-sm opacity-60">
+                                    <h4 class="font-brand text-lg text-zinc-500 mb-1">Sprint 1: Assessment</h4>
+                                    <p class="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-3">Triage & Baseline</p>
+                                    <p class="text-sm text-zinc-500">We salvaged the evergreen strategy, archived the Ironton math, and built the blank Dayton 2.0 framework.</p>
+                                </div>
+                            </div>
+                            <!-- Desktop Icon -->
+                            <div class="hidden md:flex absolute left-1/2 transform -translate-x-1/2 w-12 h-12 bg-zinc-200 border-4 border-white rounded-full items-center justify-center text-xl shadow-sm z-20"><i data-lucide="check" class="w-5 h-5 text-zinc-600"></i></div>
+                            <div class="md:w-1/2 pl-16 md:pl-8"></div>
+                        </div>
+
+                        <!-- Sprint 2 -->
+                        <div class="flex flex-col md:flex-row items-start md:items-center w-full">
+                            <div class="md:w-1/2 pr-8 md:text-right hidden md:block"></div>
+                            <!-- Mobile Icon -->
+                            <div class="md:hidden absolute left-0 top-0 w-12 h-12 bg-pink-500 text-white border-4 border-white rounded-full flex items-center justify-center text-xl shadow-md z-20 animate-pulse"><i data-lucide="zap" class="w-5 h-5"></i></div>
+                            <!-- Desktop Icon -->
+                            <div class="hidden md:flex absolute left-1/2 transform -translate-x-1/2 w-12 h-12 bg-pink-500 text-white border-4 border-white rounded-full items-center justify-center text-xl shadow-md z-20 animate-pulse"><i data-lucide="zap" class="w-5 h-5"></i></div>
+                            <div class="md:w-1/2 flex justify-start pl-16 md:pl-8 relative w-full">
+                                <div class="bg-white p-6 border-2 border-pink-500 shadow-lg rounded-sm w-full md:max-w-sm transform md:scale-105">
+                                    <h4 class="font-brand text-lg text-zinc-900 mb-1">Sprint 2: Validation</h4>
+                                    <p class="text-xs text-pink-500 font-bold uppercase tracking-wider mb-3">Owner Input Phase</p>
+                                    <p class="text-sm text-zinc-600">You must provide the operational reality (Launch Scope, CapEx tolerance, MEP rules) to unlock the pro forma.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Sprint 3 -->
+                        <div class="flex flex-col md:flex-row items-start md:items-center w-full">
+                            <div class="md:w-1/2 flex md:justify-end pr-8 pl-16 md:pl-0 relative mb-4 md:mb-0">
+                                <!-- Mobile Icon -->
+                                <div class="md:hidden absolute left-0 top-0 w-12 h-12 bg-zinc-900 text-white border-4 border-white rounded-full flex items-center justify-center text-xl shadow-sm z-20"><i data-lucide="briefcase" class="w-5 h-5"></i></div>
+                                <div class="bg-white p-6 border border-zinc-200 shadow-sm rounded-sm text-left md:text-right w-full md:max-w-sm opacity-80">
+                                    <h4 class="font-brand text-lg text-zinc-900 mb-1">Sprint 3: Lender Package</h4>
+                                    <p class="text-xs text-zinc-500 font-bold uppercase tracking-wider mb-3">Funding Readiness</p>
+                                    <p class="text-sm text-zinc-600">Once variables are locked, we generate the final Unified Business Plan, Pitch Deck, and 36-Month Pro Forma.</p>
+                                </div>
+                            </div>
+                            <!-- Desktop Icon -->
+                            <div class="hidden md:flex absolute left-1/2 transform -translate-x-1/2 w-12 h-12 bg-zinc-900 text-white border-4 border-white rounded-full items-center justify-center text-xl shadow-sm z-20"><i data-lucide="briefcase" class="w-5 h-5"></i></div>
+                            <div class="md:w-1/2 pl-16 md:pl-8"></div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- Call to Action -->
+                <div class="bg-zinc-950 p-8 md:p-12 text-center flex flex-col items-center border-t-4 border-t-pink-500 shadow-2xl relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 20px 20px;"></div>
+                    <div class="relative z-10 flex flex-col items-center">
+                        <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl mb-5 shadow-lg"><i data-lucide="rocket" class="w-8 h-8 text-pink-500"></i></div>
+                        <h3 class="font-brand text-3xl text-white mb-3">Advance to Sprint 2</h3>
+                        <p class="text-zinc-400 text-sm max-w-xl mb-8 leading-relaxed">
+                            You have reviewed the strategic baseline. The next step is to clear the Tier 1 Validation hurdles by providing your operational inputs. This keeps the momentum moving toward the bank.
+                        </p>
+                        <!-- Link Placeholder: Replace URL here -->
+                        <button onclick="window.location.href='https://[YOUR-GITHUB-URL-FOR-INTAKE-PORTAL]'" class="bg-white text-zinc-900 hover:bg-zinc-200 px-10 py-4 text-sm font-bold uppercase tracking-widest transition-colors shadow-lg flex items-center">
+                            Open Knowledge Capture Portal <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // --- Navigation Logic ---
+        function switchTab(tabId) {
+            // Stop all video and audio players when switching tabs to prevent overlap
+            document.querySelectorAll('video, audio').forEach(media => media.pause());
+
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.add('hide');
+            });
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-zinc-900', 'text-zinc-100', 'border-pink-500');
+                btn.classList.add('hover:bg-zinc-900', 'hover:text-zinc-200', 'border-transparent');
+            });
+
+            document.getElementById('tab-' + tabId).classList.remove('hide');
+            
+            const activeBtn = document.getElementById('nav-' + tabId);
+            activeBtn.classList.remove('hover:bg-zinc-900', 'hover:text-zinc-200', 'border-transparent');
+            activeBtn.classList.add('bg-zinc-900', 'text-zinc-100', 'border-pink-500');
+
+            if (window.innerWidth < 768) {
+                document.getElementById('sidebar').classList.add('-translate-x-full');
+            }
+
+            document.getElementById('main-content').scrollTo({ top: 0, behavior: 'smooth' });
+
+            if (tabId === 'financials') {
+                initRevenueChart();
+            }
+        }
+
+        document.getElementById('mobileMenuBtn').addEventListener('click', () => {
+            document.getElementById('sidebar').classList.toggle('-translate-x-full');
+        });
+
+        // --- Interactive Chart.js Logic ---
+        let revChartInstance = null;
+
+        function initRevenueChart() {
+            if (revChartInstance) return;
+
+            const ctx = document.getElementById('revenueChart').getContext('2d');
+            Chart.defaults.font.family = "'Inter', sans-serif";
+
+            const baseData = [10000, 12000, 15000, 18000, 20000, 22000];
+            const logisticsData = [0, 0, 0, 0, 0, 0];
+            const brandData = [0, 0, 0, 0, 0, 0];
+
+            revChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['Month 1', 'Month 2', 'Month 3', 'Month 4', 'Month 5', 'Month 6'],
+                    datasets: [
+                        { label: 'Lean Production Base', data: baseData, backgroundColor: '#18181b', stack: 'Stack 0' },
+                        { label: 'Logistics Upside', data: logisticsData, backgroundColor: '#f59e0b', stack: 'Stack 0' },
+                        { label: 'Brand Support Upside', data: brandData, backgroundColor: '#ec4899', stack: 'Stack 0' }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            stacked: true, beginAtZero: true, grid: { color: '#f4f4f5' }, border: { display: false },
+                            ticks: { callback: function(value) { return '$' + value / 1000 + 'k'; } }
+                        },
+                        x: { stacked: true, grid: { display: false }, border: { display: false } }
+                    },
+                    plugins: {
+                        tooltip: {
+                            backgroundColor: 'rgba(24, 24, 27, 0.95)', titleFont: { family: "'Montserrat', sans-serif" },
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.y !== null) {
+                                        label += new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(context.parsed.y);
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Toggle Logic Setup
+            const toggleLogistics = document.getElementById('toggle-logistics');
+            const bgLogistics = document.getElementById('bg-logistics');
+            const dotLogistics = document.getElementById('dot-logistics');
+            
+            const toggleBrand = document.getElementById('toggle-brand');
+            const bgBrand = document.getElementById('bg-brand');
+            const dotBrand = document.getElementById('dot-brand');
+
+            function updateChart() {
+                if (toggleLogistics.checked) {
+                    revChartInstance.data.datasets[1].data = [2000, 3000, 4000, 4000, 5000, 5000];
+                    bgLogistics.style.backgroundColor = '#f59e0b';
+                    dotLogistics.classList.add('translate-x-4');
+                } else {
+                    revChartInstance.data.datasets[1].data = [0, 0, 0, 0, 0, 0];
+                    bgLogistics.style.backgroundColor = '#e4e4e7';
+                    dotLogistics.classList.remove('translate-x-4');
+                }
+
+                if (toggleBrand.checked) {
+                    revChartInstance.data.datasets[2].data = [0, 1000, 2000, 3000, 4500, 6000];
+                    bgBrand.style.backgroundColor = '#ec4899';
+                    dotBrand.classList.add('translate-x-4');
+                } else {
+                    revChartInstance.data.datasets[2].data = [0, 0, 0, 0, 0, 0];
+                    bgBrand.style.backgroundColor = '#e4e4e7';
+                    dotBrand.classList.remove('translate-x-4');
+                }
+                revChartInstance.update();
+            }
+
+            toggleLogistics.addEventListener('change', updateChart);
+            toggleBrand.addEventListener('change', updateChart);
+        }
+
+        // --- Slider Logic ---
+        const slider = document.getElementById('delay-slider');
+        const burnReadout = document.getElementById('burn-readout');
+        const monthsReadout = document.getElementById('months-readout');
+        const burnCard = document.getElementById('burn-card');
+        const baseRent = 4667;
+
+        slider.addEventListener('input', function() {
+            const months = parseInt(this.value);
+            const totalBurn = months * baseRent;
+            
+            monthsReadout.innerText = months + " Months";
+            burnReadout.innerText = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(totalBurn);
+
+            if (months > 6) {
+                burnReadout.classList.replace('text-white', 'text-pink-400');
+                burnCard.classList.replace('border-pink-500/50', 'border-pink-500');
+            } else {
+                burnReadout.classList.replace('text-pink-400', 'text-white');
+                burnCard.classList.replace('border-pink-500', 'border-pink-500/50');
+            }
+        });
+
+        // --- Validation Funnel Logic ---
+        const funnelData = {
+            critical: {
+                title: "1. Critical Path (Must Solve First)", count: "4 Items",
+                items: [
+                    { q: "True monthly occupancy cost (NNN)", owner: "Broker / Landlord" },
+                    { q: "Grease interceptor status", owner: "Contractor / MEP" },
+                    { q: "Hood / make-up air feasibility", owner: "Contractor / MEP" },
+                    { q: "Electrical/gas/plumbing capacity", owner: "Contractor / MEP" }
+                ]
+            },
+            operations: {
+                title: "2. Base Operations", count: "4 Items",
+                items: [
+                    { q: "Shared food production allowed", owner: "Advisor (Zoning)" },
+                    { q: "Catering production allowed", owner: "Advisor (Zoning)" },
+                    { q: "Shared kitchen health pathway", owner: "Advisor (Health)" },
+                    { q: "Minimum credible launch version", owner: "Ian / Vanessa" }
+                ]
+            },
+            upside: {
+                title: "3. Upside Validation", count: "2 Items",
+                items: [
+                    { q: "Food truck / yard use allowance", owner: "Broker / Landlord" },
+                    { q: "Customer-facing use (Events/Retail)", owner: "Advisor (Zoning)" }
+                ]
+            },
+            funding: {
+                title: "4. Funding Stack", count: "5 Items",
+                items: [
+                    { q: "Lease term and renewal rights", owner: "Broker / Landlord" },
+                    { q: "Tenant improvement allowance", owner: "Broker / Landlord" },
+                    { q: "Minimal buildout range (CapEx)", owner: "Contractor / MEP" },
+                    { q: "Funding source mix", owner: "Ian / Vanessa" },
+                    { q: "Working capital reserve tolerance", owner: "Ian / Vanessa" }
+                ]
+            }
+        };
+
+        function showFunnelData(layerKey) {
+            const data = funnelData[layerKey];
+            document.getElementById('funnel-title').innerText = data.title;
+            document.getElementById('funnel-count').innerText = data.count;
+            
+            const list = document.getElementById('funnel-list');
+            list.innerHTML = '';
+            
+            data.items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = "p-3 bg-zinc-50 border border-zinc-100 rounded-sm fade-in";
+                
+                let ownerClass = "bg-zinc-200 text-zinc-600";
+                if(item.owner.includes("Ian")) ownerClass = "bg-pink-100 text-pink-700";
+                if(item.owner.includes("Contractor")) ownerClass = "bg-amber-100 text-amber-700";
+
+                li.innerHTML = `
+                    <div class="text-sm font-bold text-zinc-800 mb-1">${item.q}</div>
+                    <div class="inline-block px-2 py-0.5 text-[10px] uppercase tracking-wider font-bold rounded-sm ${ownerClass}">
+                        Owner: ${item.owner}
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
